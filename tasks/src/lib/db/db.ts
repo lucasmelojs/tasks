@@ -5,6 +5,28 @@ import type { Task, User, TaskComment, Notification } from '@/types/db';
 
 export const db = {
   tasks: {
+    // Add getAll method
+    async getAll(): Promise<Task[]> {
+      try {
+        logger.debug('Executing getAll tasks query');
+        
+        const result = await sql`
+          SELECT * FROM tasks 
+          ORDER BY created_at DESC;
+        `;
+        
+        logger.debug('Tasks retrieved from database:', { 
+          count: result.rows.length 
+        });
+
+        return result.rows as Task[];
+      } catch (error) {
+        logger.error(error as Error, { operation: 'getAllTasks' });
+        throw new DatabaseError('Failed to fetch tasks', error);
+      }
+    },
+
+    // Rest of your existing methods
     async create(data: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Promise<Task> {
       try {
         const result = await sql`
@@ -67,7 +89,7 @@ export const db = {
           throw new NotFoundError('Task not found');
         }
 
-             return result.rows[0] as Task;
+        return result.rows[0] as Task;
       } catch (error) {
         if (error instanceof NotFoundError) throw error;
         
@@ -110,6 +132,7 @@ export const db = {
   },
 
   users: {
+    // Your existing users methods remain the same
     async create(data: Omit<User, 'created_at' | 'updated_at'>): Promise<User> {
       try {
         const result = await sql`

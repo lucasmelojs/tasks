@@ -56,7 +56,9 @@ export function CalendarContainer({ tasks }: CalendarContainerProps) {
       <CreateTaskDialog
         open={isCreateDialogOpen}
         onClose={() => setIsCreateDialogOpen(false)}
-        // Removed initialDate as it is not a valid prop
+        onTaskCreated={() => {
+          // Handle task creation logic here, e.g., refresh task list
+        }}
       />
     </>
   );

@@ -1,25 +1,32 @@
 import { NextResponse } from 'next/server';
-import { authenticate } from '@/lib/auth';
 import { db } from '@/lib/db/db';
+import { authenticate } from '@/lib/auth';
 import { logger } from '@/lib/logger/logger';
 import { ValidationError } from '@/lib/errors';
-import type { Task } from '@/types/db';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const user = await authenticate();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    const tasks = await db.tasks.getByAssignee(user.id);
     
-    return NextResponse.json(tasks);
+    const tasks = await db.tasks.getAll();
+    
+    logger.info('Tasks fetched successfully', {
+      userId: user?.id,
+      taskCount: tasks.length
+    });
+
+    // Make sure we're returning a properly formatted JSON response
+    return NextResponse.json({ data: tasks });
+
   } catch (error) {
-    logger.error(error as Error, { path: '/api/tasks', method: 'GET' });
+    logger.error(error as Error, { context: 'GET /api/tasks' });
     
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch tasks' },
-      { status: error instanceof Error ? (error as any).statusCode || 500 : 500 }
+      { 
+        error: 'Failed to fetch tasks',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
     );
   }
 }
@@ -29,34 +36,52 @@ export async function POST(request: Request) {
     const user = await authenticate();
     const data = await request.json();
 
-    // Validate request data
+    // Validate required fields
     if (!data.title?.trim()) {
       throw new ValidationError('Title is required');
     }
-
-    if (!user) {
-      throw new Error('User not authenticated');
+    
+    if (!data.due_date) {
+      throw new ValidationError('Due date is required');
     }
+
+    if (!data.assigned_to) {
+      throw new ValidationError('Assignee is required');
+    }
+
     const task = await db.tasks.create({
-      ...data,
-      assigned_by: user.id,
+      title: data.title.trim(),
+      description: data.description?.trim() || '',
       status: 'pending',
       priority: data.priority || 'medium',
+      due_date: new Date(data.due_date),
+      assigned_to: data.assigned_to,
+      assigned_by: user?.id ?? 'unknown'
     });
 
-    if (!user) {
-      throw new Error('User not authenticated');
+    logger.info('Task created successfully', { 
+      taskId: task.id, 
+      userId: user?.id 
+    });
+
+    return NextResponse.json({ data: task }, { status: 201 });
+
+  } catch (error) {
+    logger.error(error as Error, {
+      context: 'POST /api/tasks',
+      body: await request.clone().text()
+    });
+
+    if (error instanceof ValidationError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
     }
 
-    logger.info('Task created', { taskId: task.id, userId: user.id });
-
-    return NextResponse.json(task, { status: 201 });
-  } catch (error) {
-    logger.error(error as Error, { path: '/api/tasks', method: 'POST' });
-    
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create task' },
-      { status: error instanceof Error ? (error as any).statusCode || 500 : 500 }
+      { error: 'Failed to create task' },
+      { status: 500 }
     );
   }
 }

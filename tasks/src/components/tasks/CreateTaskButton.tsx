@@ -1,11 +1,16 @@
 'use client';
-
 import { useState } from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { CreateTaskDialog } from './CreateDialog';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export function CreateTaskButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { user } = useAuth();
+
+  const handleTaskCreated = () => {
+    window.location.reload();
+  };
 
   return (
     <>
@@ -20,6 +25,7 @@ export function CreateTaskButton() {
       <CreateTaskDialog
         open={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
+        onTaskCreated={handleTaskCreated}
       />
     </>
   );

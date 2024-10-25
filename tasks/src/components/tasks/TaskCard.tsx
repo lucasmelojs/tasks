@@ -1,9 +1,6 @@
-'use client';
-
-import { useState } from 'react';
 import { format } from 'date-fns';
-import { Task } from '@/types/db';
 import { logger } from '@/lib/logger/logger';
+import type { Task } from '@/types/db';
 
 interface TaskCardProps {
   task: Task;
@@ -24,25 +21,8 @@ const statusColors = {
 };
 
 export function TaskCard({ task, onUpdate }: TaskCardProps) {
-  const [updating, setUpdating] = useState(false);
-
-  const handleStatusUpdate = async (newStatus: Task['status']) => {
-    setUpdating(true);
-    try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update task');
-      onUpdate();
-    } catch (error) {
-      logger.error(error as Error, { context: 'TaskCard', taskId: task.id });
-    } finally {
-      setUpdating(false);
-    }
-  };
+  // Debug log when task card renders
+  logger.debug('Rendering TaskCard:', { taskId: task.id, title: task.title });
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -65,27 +45,6 @@ export function TaskCard({ task, onUpdate }: TaskCardProps) {
         <div className="flex space-x-4 text-sm text-gray-500">
           <span>Due: {format(new Date(task.due_date), 'MMM d, yyyy')}</span>
           <span>Assigned to: {task.assigned_to}</span>
-        </div>
-        
-        <div className="flex space-x-2">
-          {task.status !== 'completed' && (
-            <button
-              onClick={() => handleStatusUpdate('completed')}
-              disabled={updating}
-              className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              Complete
-            </button>
-          )}
-          {task.status === 'pending' && (
-            <button
-              onClick={() => handleStatusUpdate('in_progress')}
-              disabled={updating}
-              className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              Start
-            </button>
-          )}
         </div>
       </div>
     </div>
