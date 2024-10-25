@@ -1,13 +1,12 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User } from 'firebase/auth';
+import { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { logger } from '@/lib/logger/logger';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface AuthContextType {
-  user: User | null;
+  user: FirebaseUser | null;
   loading: boolean;
 }
 
@@ -17,7 +16,7 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,14 +33,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => unsubscribe();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={{ user, loading }}>

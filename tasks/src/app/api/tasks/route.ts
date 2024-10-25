@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { db } from '@/lib/db/db';
+import { logger } from '@/lib/logger/logger';
 import { ValidationError } from '@/lib/errors';
 import type { Task } from '@/types/db';
 
 export async function GET(request: Request) {
   try {
     const user = await authenticate();
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
     const tasks = await db.tasks.getByAssignee(user.id);
     
     return NextResponse.json(tasks);
@@ -31,12 +34,19 @@ export async function POST(request: Request) {
       throw new ValidationError('Title is required');
     }
 
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
     const task = await db.tasks.create({
       ...data,
       assigned_by: user.id,
       status: 'pending',
       priority: data.priority || 'medium',
     });
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
 
     logger.info('Task created', { taskId: task.id, userId: user.id });
 
