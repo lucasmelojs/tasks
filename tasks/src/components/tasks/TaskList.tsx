@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { Task } from '@/types/db';
-import { logger } from '@/lib/logger/logger';
+
+import { useState, useEffect } from 'react';
+import { TaskCard } from './TaskCard';  // Import TaskCard instead of Card
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { TaskCard } from './TaskCard';
+import { logger } from '@/lib/logger/logger';
+import type { Task } from '@/types/db';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -13,7 +14,7 @@ export function TaskList() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      logger.debug('Fetching tasks...');
+      setError(null);
       
       const response = await fetch('/api/tasks');
       const result = await response.json();
@@ -22,14 +23,10 @@ export function TaskList() {
         throw new Error(result.error || 'Failed to fetch tasks');
       }
 
-      // Access tasks through the data property
-      const tasks = result.data;
-      logger.debug('Tasks received:', { count: tasks.length });
+      setTasks(result.data || []);
       
-      setTasks(tasks);
-      setError(null);
     } catch (error) {
-      logger.error(error as Error, { context: 'TaskList' });
+      logger.error(error as Error, { context: 'TaskList.fetchTasks' });
       setError(error instanceof Error ? error.message : 'Failed to load tasks');
     } finally {
       setLoading(false);
@@ -40,43 +37,24 @@ export function TaskList() {
     fetchTasks();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-700">{error}</p>
-        <button 
-          onClick={fetchTasks}
-          className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-800"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (!tasks.length) {
-    return (
-      <div className="text-center py-12 bg-white rounded-lg shadow">
-        <p className="text-gray-500">No tasks found</p>
-      </div>
-    );
-  }
+  const handleTaskChange = () => {
+    fetchTasks();
+  };
 
   return (
     <div className="space-y-4">
+      {loading && (
+        <div className="fixed bottom-4 right-4 bg-white rounded-full shadow-lg p-2">
+          <LoadingSpinner size="sm" />
+        </div>
+      )}
+      
       {tasks.map((task) => (
-        <TaskCard 
-          key={task.id} 
-          task={task} 
-          onUpdate={fetchTasks}
+        <TaskCard  // Using TaskCard instead of Card
+          key={task.id}
+          task={task}
+          onUpdate={handleTaskChange}
+          onDelete={handleTaskChange}
         />
       ))}
     </div>
